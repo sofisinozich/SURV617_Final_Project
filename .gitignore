@@ -1,0 +1,4 @@
+.Rproj*
+data/exam.dat
+.RHistory
+.RData
