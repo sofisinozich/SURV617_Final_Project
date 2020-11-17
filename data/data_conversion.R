@@ -9,6 +9,12 @@ library(SAScii)
 # This takes a very long time but it will finish
 # Warnings are just NA coercions, they are OK
 
-exam_data<-read.SAScii("exam.dat","exam_edited.sas")
+exam_data<-read.SAScii("data/exam.dat","data/exam_edited.sas")
+saveRDS(exam_data,"data/exam.rds")
 
-saveRDS(exam_data,"exam.rds")
+lab_data <- read.SAScii("data/lab.dat","data/lab_edited.sas")
+saveRDS(lab_data,"data/lab.rds")
+
+# Only includes those where exam and lab data are available
+full_data <- merge(exam_data,lab_data)
+# saveRDS(full_data,"data/full_data.rds")
