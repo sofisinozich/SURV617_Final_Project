@@ -8,6 +8,7 @@ output: html_document
 Load data
 ```{r}
 exam_data <- readRDS("data/exam.rds")
+full_data <-readRDS("data/full_data.rds")
 ```
 
 Load libraries
@@ -51,13 +52,27 @@ exam_data %>% select(PEPTECH,PEPLEVEL) %>%
   facet_wrap(PEPTECH ~.)
 ```
 
-#Check for confounding--do all proposed variables differ by both health_status and examiner_id?
+#Check for varying slopes and intercepts.
+```{r}
+sub_data = subset(full_data, SEQN <100) 
+
+ggplot(sub_data, aes(x = TIME, y = CHOLST, group = examiner_id, color = examiner_id)) + 
+  geom_line()
+```
+
+#Check if proposed variables differ by health_status, referral status, and examiner_id?
 
 #Race
-Race varies moderately by health status and quite a bit by examiner.
+Race varies moderately by health status and quite a bit by referral status and examiner.
 ```{r}
 #Health status x race
 ggplot(full_data, aes(x=as.factor(health_status), fill=as.factor(race))) + 
+  geom_bar(position = "fill")+ 
+  scale_y_continuous(labels = scales::percent, breaks = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)) +
+  ylab("Percent")
+
+#Referral status x race
+ggplot(full_data, aes(x=as.factor(PEPLEVEL), fill=as.factor(race))) + 
   geom_bar(position = "fill")+ 
   scale_y_continuous(labels = scales::percent, breaks = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)) +
   ylab("Percent")
@@ -70,10 +85,16 @@ ggplot(full_data, aes(x=as.factor(examiner_id), fill=as.factor(race))) +
 ```
 
 #Gender
-Gender varies minimally by health status but moderately by examiner.
+Gender varies minimally by health and referral status but moderately by examiner.
 ```{r}
 #Health status x race
 ggplot(full_data, aes(x=as.factor(health_status), fill=as.factor(gender))) + 
+  geom_bar(position = "fill")+ 
+  scale_y_continuous(labels = scales::percent, breaks = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)) +
+  ylab("Percent")
+
+#Referral status x race
+ggplot(full_data, aes(x=as.factor(PEPLEVEL), fill=as.factor(gender))) + 
   geom_bar(position = "fill")+ 
   scale_y_continuous(labels = scales::percent, breaks = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)) +
   ylab("Percent")
@@ -86,10 +107,14 @@ ggplot(full_data, aes(x=as.factor(examiner_id), fill=as.factor(gender))) +
 ```
 
 #Age
-Age varies significantly by health status and moderately by examiner.
+Age varies significantly by health and referral status and moderately by examiner.
 ```{r}
 #Health status x age
 ggplot(full_data, aes(x=as.factor(health_status), y=age)) + 
+  geom_boxplot() 
+
+#Referral status x age
+ggplot(full_data, aes(x=as.factor(PEPLEVEL), y=age)) + 
   geom_boxplot() 
 
 #Examiner x age
@@ -98,10 +123,16 @@ ggplot(full_data, aes(x=as.factor(examiner_id), y=age)) +
 ```
 
 #Region
-Region varies a little bit by health status and quite a bit by examiner.
+Region varies a little bit by health status, moderately by referral status, and quite a bit by examiner.
 ```{r}
 #Health status x region
 ggplot(full_data, aes(x=as.factor(health_status), fill=as.factor(region))) + 
+  geom_bar(position = "fill")+ 
+  scale_y_continuous(labels = scales::percent, breaks = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)) +
+  ylab("Percent")
+
+#Referral status x region
+ggplot(full_data, aes(x=as.factor(PEPLEVEL), fill=as.factor(region))) + 
   geom_bar(position = "fill")+ 
   scale_y_continuous(labels = scales::percent, breaks = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)) +
   ylab("Percent")
@@ -114,10 +145,16 @@ ggplot(full_data, aes(x=as.factor(examiner_id), fill=as.factor(region))) +
 ```
 
 #Locomotion
-Locomotion appears to vary significantly by health status and moderately by examiner.
+Locomotion appears to vary significantly by health status and moderately by referral status and examiner.
 ```{r}
 #Health status x locomotion
 ggplot(full_data, aes(x=as.factor(health_status), fill=as.factor(locomotion))) + 
+  geom_bar(position = "fill")+ 
+  scale_y_continuous(labels = scales::percent, breaks = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)) +
+  ylab("Percent")
+
+#Referral status x locomotion
+ggplot(full_data, aes(x=as.factor(PEPLEVEL), fill=as.factor(locomotion))) + 
   geom_bar(position = "fill")+ 
   scale_y_continuous(labels = scales::percent, breaks = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)) +
   ylab("Percent")
@@ -130,10 +167,16 @@ ggplot(full_data, aes(x=as.factor(examiner_id), fill=as.factor(locomotion))) +
 ```
 
 #Paralysis
-Paralysis varies a lot by health status and a little by examiner.
+Paralysis varies a lot by health status and a little by referral status and examiner.
 ```{r}
 #Health status x paralysis
 ggplot(full_data, aes(x=as.factor(health_status), fill=as.factor(paralysis))) + 
+  geom_bar(position = "fill")+ 
+  scale_y_continuous(labels = scales::percent, breaks = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)) +
+  ylab("Percent")
+
+#Referral status x paralysis
+ggplot(full_data, aes(x=as.factor(PEPLEVEL), fill=as.factor(paralysis))) + 
   geom_bar(position = "fill")+ 
   scale_y_continuous(labels = scales::percent, breaks = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)) +
   ylab("Percent")
@@ -146,10 +189,14 @@ ggplot(full_data, aes(x=as.factor(examiner_id), fill=as.factor(paralysis))) +
 ```
 
 #Systolic BP
-Systolic BP varies by health status but only varies slightly by examiner.
+Systolic BP varies by health status and referral status, but only varies slightly by examiner.
 ```{r}
 #Health status x systolic_bp
 ggplot(full_data, aes(x=as.factor(health_status), y=systolic_bp)) + 
+  geom_boxplot() 
+
+#Referral status x systolic_bp
+ggplot(full_data, aes(x=as.factor(PEPLEVEL), y=systolic_bp)) + 
   geom_boxplot() 
 
 #Examiner x systolic_bp
@@ -158,11 +205,15 @@ ggplot(full_data, aes(x=as.factor(examiner_id), y=systolic_bp)) +
 ```
 
 #Diastolic BP
-Diastolic BP does not appear to have much variation by health status or examiner.
+Diastolic BP does not appear to have much variation by health status or examiner. It varies a bit by referral status.
 * Note: Systolic and diastolic BP work together to assess hypertension. I recommend we either use systolic BP only (because it shows more variation) or combine them to create a binomial hypertension variable.
 ```{r}
 #Health status x diastolic_bp
 ggplot(full_data, aes(x=as.factor(health_status), y=diastolic_bp)) + 
+  geom_boxplot() 
+
+#Referral status x diastolic_bp
+ggplot(full_data, aes(x=as.factor(PEPLEVEL), y=diastolic_bp)) + 
   geom_boxplot() 
 
 #Examiner x diastolic_bp
@@ -171,11 +222,17 @@ ggplot(full_data, aes(x=as.factor(examiner_id), y=diastolic_bp)) +
 ```
 
 #Dermatitis
-Dermatitis varies a little by health status and moderately by examiner.
+Other than the NAs, dermatitis varies only a little by health and referral status and moderately by examiner.
 * Note: Dermatitis almost appears to be negatively correlated with health status, which tells me it's not an important enough health issue to affect a doctor's health status assessment. I recommend removing this variable from the model
 ```{r}
 #Health status x dermatitis
 ggplot(full_data, aes(x=as.factor(health_status), fill=as.factor(dermatitis))) + 
+  geom_bar(position = "fill")+ 
+  scale_y_continuous(labels = scales::percent, breaks = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)) +
+  ylab("Percent")
+
+#Referral status x dermatitis
+ggplot(full_data, aes(x=as.factor(PEPLEVEL), fill=as.factor(dermatitis))) + 
   geom_bar(position = "fill")+ 
   scale_y_continuous(labels = scales::percent, breaks = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)) +
   ylab("Percent")
@@ -188,10 +245,16 @@ ggplot(full_data, aes(x=as.factor(examiner_id), fill=as.factor(dermatitis))) +
 ```
 
 #Impairment
-Impairment varies significantly by health status and minimally by examiner.
+Impairment varies significantly by health status and minimally by referral status and examiner.
 ```{r}
 #Health status x impairment
 ggplot(full_data, aes(x=as.factor(health_status), fill=as.factor(impairment))) + 
+  geom_bar(position = "fill")+ 
+  scale_y_continuous(labels = scales::percent, breaks = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)) +
+  ylab("Percent")
+
+#Referral status x impairment
+ggplot(full_data, aes(x=as.factor(PEPLEVEL), fill=as.factor(impairment))) + 
   geom_bar(position = "fill")+ 
   scale_y_continuous(labels = scales::percent, breaks = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)) +
   ylab("Percent")
@@ -203,10 +266,16 @@ ggplot(full_data, aes(x=as.factor(examiner_id), fill=as.factor(impairment))) +
   ylab("Percent")
 ```
 #Infection
-Infection varies quite a bit by both health status and examiner.
+Infection varies quite a bit by both health status and examiner, and moderately by referral status.
 ```{r}
 #Health status x infection
 ggplot(full_data, aes(x=as.factor(health_status), fill=as.factor(infection))) + 
+  geom_bar(position = "fill")+ 
+  scale_y_continuous(labels = scales::percent, breaks = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)) +
+  ylab("Percent")
+
+#Referral status x infection
+ggplot(full_data, aes(x=as.factor(PEPLEVEL), fill=as.factor(infection))) + 
   geom_bar(position = "fill")+ 
   scale_y_continuous(labels = scales::percent, breaks = c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1)) +
   ylab("Percent")
@@ -219,10 +288,14 @@ ggplot(full_data, aes(x=as.factor(examiner_id), fill=as.factor(infection))) +
 ```
 
 #BMI
-BMI varies moderately by health status but minimally by examiner.
+BMI varies moderately by health status but minimally by referral status and examiner.
 ```{r}
 #Health status x BMI
 ggplot(full_data, aes(x=as.factor(health_status), y=bmi)) + 
+  geom_boxplot() 
+
+#Referral status x BMI
+ggplot(full_data, aes(x=as.factor(PEPLEVEL), y=bmi)) + 
   geom_boxplot() 
 
 #Examiner x BMI
@@ -231,11 +304,15 @@ ggplot(full_data, aes(x=as.factor(examiner_id), y=bmi)) +
 ```
 
 #RBC Count
-RBC count varies minimally by both health status and examiner.
+RBC count varies minimally by health status, referral status, and examiner.
 *Note: I did a quick Google check, and it looks like RBC count and hemoglobin measure roughly the same thing--anemia. Neither appears to be strongly correlated with health status or examiner, so we could probably remove both from the model, but should definitely remove one from the model.
 ```{r}
 #Health status x RBC count
 ggplot(full_data, aes(x=as.factor(health_status), y=rbc_count)) + 
+  geom_boxplot() 
+
+#Referral status x RBC count
+ggplot(full_data, aes(x=as.factor(PEPLEVEL), y=rbc_count)) + 
   geom_boxplot() 
 
 #Examiner x RBC count
@@ -244,11 +321,15 @@ ggplot(full_data, aes(x=as.factor(examiner_id), y=rbc_count)) +
 ```
 
 #WBC Count
-WBC count varies minimally by both health status and examiner.
+WBC count varies minimally by health status, referral status, and examiner.
 *Note: WBC count is primarily an indicator of infection. Since we already have an infection variable, which appears to be more strongly correlated with health status and examiner than wbc_count is, I recommend removing wbc_count from the model.
 ```{r}
 #Health status x WBC count
 ggplot(full_data, aes(x=as.factor(health_status), y=wbc_count)) + 
+  geom_boxplot() 
+
+#Referral status x WBC count
+ggplot(full_data, aes(x=as.factor(PEPLEVEL), y=wbc_count)) + 
   geom_boxplot() 
 
 #Examiner x WBC count
@@ -257,11 +338,15 @@ ggplot(full_data, aes(x=as.factor(examiner_id), y=wbc_count)) +
 ```
 
 #Platelet Count
-Platelet count varies minimally by both health status and examiner.
+Platelet count varies minimally by health status, referral status, and examiner.
 *Note: Platelet count is another indicator of infection, as well as cancer (and some cancer treatments), kidney infections, medications, too much alcohol, or an inherited condition. Since there's not a ton of correlation between plt_count and health status or examiner, and since it overlaps a bit with the infection variable, I recommend removing it from the model.
 ```{r}
 #Health status x Platelet count
 ggplot(full_data, aes(x=as.factor(health_status), y=plt_count)) + 
+  geom_boxplot() 
+
+#Referral status x Platelet count
+ggplot(full_data, aes(x=as.factor(PEPLEVEL), y=plt_count)) + 
   geom_boxplot() 
 
 #Examiner x Platelet count
@@ -270,11 +355,15 @@ ggplot(full_data, aes(x=as.factor(examiner_id), y=plt_count)) +
 ```
 
 #Hemoglobin
-Hemoglobin varies minimally by both health status and examiner.
+Hemoglobin varies minimally by health status, referral status, and examiner.
 *Note: As noted above, hemoglobin is primarily an indicator of RBC count. (Too little hemoglobin = too few RBCs = anemia) Since it's not strongly correlated with health status or examiner and overlaps with RBC count, in terms of medical meaning, I recommend removing it from the model.
 ```{r}
 #Health status x hemoglobin
 ggplot(full_data, aes(x=as.factor(health_status), y=hemoglobin)) + 
+  geom_boxplot() 
+
+#Referral status x hemoglobin
+ggplot(full_data, aes(x=as.factor(PEPLEVEL), y=hemoglobin)) + 
   geom_boxplot() 
 
 #Examiner x hemoglobin
