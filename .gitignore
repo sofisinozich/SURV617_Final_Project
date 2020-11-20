@@ -4,3 +4,4 @@ data/exam.dat
 .RData
 data/lab.dat
 references/*
+.Rproj.user
