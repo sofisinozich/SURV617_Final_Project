@@ -5,13 +5,13 @@ exam_data <- readRDS("data/exam.rds")
 library(tidyverse)
 
 # Distribution of scores given by examiner
-exam_data %>% select(PEPTECH,PEP13A) %>%
+full_data %>% select(PEPTECH,PEP13A) %>%
   filter(PEPTECH <88888 & PEP13A < 8 ) %>% 
   ggplot +
   geom_bar(aes(x = PEP13A)) +
   facet_wrap(PEPTECH ~.)
 
-exam_data %>% select(PEPTECH,PEPLEVEL) %>%
+full_data %>% select(PEPTECH,PEPLEVEL) %>%
   filter(PEPTECH <88888 & PEPLEVEL < 8 ) %>% 
   ggplot +
   geom_bar(aes(x = PEPLEVEL)) +
