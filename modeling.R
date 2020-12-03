@@ -261,4 +261,31 @@ health_status_linear_rand <- lmer(health_status ~
 
 # Lasso -------------------------------------------------------------------
 
+library(glmmLasso)
+model_data <- model.frame(health_status_interviewer) %>% as.data.frame
+names(model_data)[7]<-"systolic_bp"
+names(model_data)[12]<-"bmi"
+names(model_data)
+model_data <- data.frame(sapply(model_data, function(x) { attributes(x) <- NULL; x }))
+model_data$examiner_id <- factor(model_data$examiner_id)
+health_status_lasso <- glmmLasso(fix = health_status2 ~
+                                     # Demographics
+                                     race + gender + age + region + time_of_day +
+                                     systolic_bp +
+                                     locomotion + paralysis + impairment + infection +
+                                     # scale(diastolic_bp) +
+                                     bmi,
+                                     # Lab variables
+                                     # scale(rbc_count) + scale(wbc_count) + scale(plt_count) + scale(hemoglobin) +
+                                     # Examiner (physician) ID
+                                     rnd = list(examiner_id=~1),
+                                     lambda = 50,
+                                   # weights = scaled_weight,
+                                   data = model_data,
+                                   family = binomial(link = "logit"))
 
+# We remove only time of day
+
+library(MuMIn)
+r.squaredGLMM(health_status_interviewer)
+r.squaredGLMM(referral_interviewer)
