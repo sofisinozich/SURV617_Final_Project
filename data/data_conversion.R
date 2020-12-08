@@ -43,9 +43,9 @@ full_data <- full_data %>%
          health_status= ifelse(PEP13A <8, PEP13A, NA_real_),
          referral_level = ifelse(PEPLEVEL < 8, PEPLEVEL, NA_real_),
          referral_level2 = ifelse(referral_level == 3,0,1), # 1 = referred
-         health_status2 = ifelse(health_status>1, 0,1), # 1 = status less than excellent
+         health_status2 = ifelse(health_status>1, 0,1), # 1 = status excellent
          health_statusevg = case_when(health_status == 1 ~ 1,
-                                      health_status == 2 ~ 0)
+                                      health_status == 2 ~ 0) # 1 = status excellent
   ) %>% 
   # Health variables
   mutate(locomotion = case_when(PEP1 == 1 ~ 0,
