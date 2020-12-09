@@ -1,4 +1,15 @@
+---
+title: "R Code and Output"
+author: "Sofi Sinozich & Rachael Jackson"
+date: "12/8/2020"
+output: html_document
+---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=FALSE}
 # Data tweaks -------------------------------------------------------------
 full_data <- readRDS("data/full_data.rds")
 
@@ -6,11 +17,15 @@ full_data$race <- factor(full_data$race,levels=c("White","Black","Hispanic","Oth
 full_data$black <- ifelse(full_data$race=="Black",1,0)
 full_data$west <- ifelse(full_data$region=="West",1,0)
 full_data$examiner_id_factor <- relevel(factor(full_data$examiner_id,levels=as.character(c(3007,c(3001:3012)[-7]))),ref="3007")
+```
 
+Our full code, including initial data wrangling and brief exploratory code is available on GitHub [https://github.com/sofisinozich/SURV617_Final_Project](https://github.com/sofisinozich/SURV617_Final_Project) but we present the key models and diagnostics here.
 
-# Variable selection ------------------------------------------------------
-# Use LASSO to penalize the use of variables with less important contributions
+# Variable selection with glmnet (`\alpha = 1` for LASSO)
 
+We tested three different variations, one unweighted, one weighted using the observation weights in `glmnet` and one with weights as a linear predictor. We use `lambda.1se` rather than `lambda.min` to achieve more shrinkage given our suspicion that some of the variables may not be important.
+
+```{r, cache=TRUE}
 library(glmnet)
 library(glmnetUtils)
 
@@ -51,15 +66,15 @@ health_lasso_weightaspredictor <- cv.glmnet(health_status2 ~
 coef(health_lasso,s="lambda.1se")
 coef(health_lasso_weighted,s="lambda.1se")
 coef(health_lasso_weightaspredictor,s="lambda.1se")
+```
 
-# Use selected variables, check with and without examiner ID --------------
-# Even though the LASSO procedure suggests that we keep it
-# Use variables from the UNWEIGHTED version
+# Evaluate the impact of examiner ID further
 
-# Reductions based on LASSO:
-# Use BLACK instead of RACE
-# Use WEST instead of REGION
+Even though the results of the regularization seem to suggest that we keep it, we did additional checks to gather additional evidence for an examiner-specific effect. We also double-check the usefulness of weights as a linear predictor based on the LASSO output.
 
+We also adjusted two of our categorical variables to include only dummies for one of the categories based on the previous output, replacing `race` with `black` and `region` with `west`.
+
+```{r}
 # Base model - using the selected variables but NO examiner effect
 health_model <- glm(health_status2 ~
                       black + gender + age + west +
@@ -105,11 +120,17 @@ health_model_examiner_weightaspredictor <- glm(health_status2 ~
 
 AIC(health_model,health_model_lim,health_model_examiner,health_model_examiner_weightaspredictor)
 BIC(health_model,health_model_lim,health_model_examiner,health_model_examiner_weightaspredictor)
-# The weight doesn't make much difference as a linear predictor
 # Note that warning is tripped by the health_model (health_model_lim and all others have same n)
 
+summary(health_model_examiner)
+```
 
-# Interactions ------------------------------------------------------------
+
+# Interactions
+
+We wanted to evaluate the usefulness of some interactions related to our research questions. We conclude that adding a interaction between the examiner and gender is worthwhile.
+
+```{r}
 health_model_examiner_intgender <- update(health_model_examiner,.~.+examiner_id_factor:gender)
 health_model_examiner_intblack <- update(health_model_examiner,.~.+examiner_id_factor:black)
 health_model_examiner_intblackgender <- update(health_model_examiner,.~.+examiner_id_factor:gender:black)
@@ -117,6 +138,7 @@ health_model_examiner_intblackgender <- update(health_model_examiner,.~.+examine
 AIC(health_model_examiner,health_model_examiner_intgender,health_model_examiner_intblack,health_model_examiner_intblackgender)
 BIC(health_model_examiner,health_model_examiner_intgender,health_model_examiner_intblack,health_model_examiner_intblackgender)
 # Gender interaction seems to be making the most difference
+
 
 # Likelihood ratio tests
 (health_model_lim$deviance - health_model_examiner$deviance)>qchisq(.95,11)
@@ -129,10 +151,12 @@ BIC(health_model_examiner,health_model_examiner_intgender,health_model_examiner_
 # This is greater, but really not by much
 
 summary(health_model_examiner_intgender)
+```
 
 
-# Diagnostics for health_model_examiner_intgender  -------------------------------------------------------------
+# Brief diagnostics
 
+```{r}
 library(tidyverse)
 
 outcomes <- bind_cols(model.frame(health_model_examiner_intgender), 
@@ -148,13 +172,13 @@ outcome_table %>% group_by(Actual) %>% summarize(Predicted= Predicted,n = n/sum(
   bind_cols(desc = c("True negative rate", "False positive rate","False negative rate","True positive rate"))
 
 # Pseudo R2
-# Not great, but not terrible either
-# http://thestatsgeek.com/2014/02/08/r-squared-in-logistic-regression/
+# Per http://thestatsgeek.com/2014/02/08/r-squared-in-logistic-regression/
 1-health_model_examiner_intgender$deviance/health_model_examiner$null.deviance
 
-# Alternative formulation from Taylor's class
-# Very similar results
+# Alternative formulation from Statistical Modeling class last year
+# Very similar results, though not identical
 1-exp((health_model_examiner_intgender$deviance-health_model_examiner_intgender$null.deviance)/dim(model.frame(health_model_examiner_intgender))[1])
 
 # Consider R2 of no examiner
 1-health_model_lim$deviance/health_model_lim$null.deviance
+```

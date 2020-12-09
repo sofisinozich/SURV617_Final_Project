@@ -5,3 +5,5 @@ data/exam.dat
 data/lab.dat
 references/*
 .Rproj.user
+*_cache/
+/cache/
