@@ -1,12 +1,12 @@
 ---
-title: "Appendix A: Annotated R Code and Output"
+title: "Appendix B: Annotated R Code and Output"
 author: "Sofi Sinozich & Rachael Jackson"
-date: "12/8/2020"
+date: "12/11/2020"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message=FALSE)
 ```
 
 ```{r echo=FALSE}
@@ -19,13 +19,13 @@ full_data$west <- ifelse(full_data$region=="West",1,0)
 full_data$examiner_id_factor <- relevel(factor(full_data$examiner_id,levels=as.character(c(3007,c(3001:3012)[-7]))),ref="3007")
 ```
 
-Our full code, including initial data wrangling and brief exploratory code is available on GitHub [https://github.com/sofisinozich/SURV617_Final_Project](https://github.com/sofisinozich/SURV617_Final_Project) but we present the key models and diagnostics here.
+Our full code, including initial data wrangling and brief exploratory code is available on [GitHub](https://github.com/sofisinozich/SURV617_Final_Project) but we present the key modeling code here.
 
-# Variable selection with glmnet (`$\alpha = 1$` for LASSO)
+# Variable selection with glmnet (LASSO)
 
-We tested three different variations, one unweighted, one weighted using the observation weights in `glmnet` and one with weights as a linear predictor. We use `lambda.1se` rather than `lambda.min` to achieve more shrinkage given our suspicion that some of the variables may not be important.
+We tested three different variations, one unweighted, one weighted using the observation weights in `glmnet` and one with weights as a linear predictor. We use `lambda.1se` rather than `lambda.min` to achieve more shrinkage given our suspicion that some of the variables may not be important. In all cases $\alpha = 1$ is used for LASSO regression (rather than elastic-net or ridge).
 
-```{r, cache=TRUE}
+```{r, cache=TRUE, warning=FALSE}
 library(glmnet)
 library(glmnetUtils)
 
@@ -154,6 +154,12 @@ AIC(health_model_examiner,health_model_examiner_intgender,health_model_examiner_
 summary(health_model_examiner_intgender)
 ```
 
+# Final equation
+
+$$
+P( \operatorname{health\_status2} = \operatorname{1} ) = invlogit(\beta_{0} + \beta_{1}(\operatorname{black}) + \beta_{2}(\operatorname{gender}_{\operatorname{Male}}) + \beta_{3}(\operatorname{age}) + \beta_{4}(\operatorname{west}) + \\ \beta_{5}(\operatorname{scale(systolic\_bp)}) + \beta_{6}(\operatorname{scale(diastolic\_bp)}) + \beta_{7}(\operatorname{locomotion}) + \beta_{8}(\operatorname{paralysis}) + \beta_{9}(\operatorname{impairment}) + \beta_{10}(\operatorname{infection}) +\\ \beta_{11}(\operatorname{scale(bmi)}) + \beta_{12}(\operatorname{scale(height)}) + \beta_{13}(\operatorname{scale(wbc\_count)}) + \beta_{14}(\operatorname{scale(plt\_count)}) + \beta_{15}(\operatorname{scale(hemoglobin)}) +\\ \beta_{16}(\operatorname{examiner\_id\_factor}_{\operatorname{3001}}) + \beta_{17}(\operatorname{examiner\_id\_factor}_{\operatorname{3002}}) + \beta_{18}(\operatorname{examiner\_id\_factor}_{\operatorname{3003}}) + \beta_{19}(\operatorname{examiner\_id\_factor}_{\operatorname{3004}}) +\\ \beta_{20}(\operatorname{examiner\_id\_factor}_{\operatorname{3005}}) +  \beta_{21}(\operatorname{examiner\_id\_factor}_{\operatorname{3006}}) + \beta_{22}(\operatorname{examiner\_id\_factor}_{\operatorname{3008}}) + \beta_{23}(\operatorname{examiner\_id\_factor}_{\operatorname{3009}}) +\\ \beta_{24}(\operatorname{examiner\_id\_factor}_{\operatorname{3010}}) + \beta_{25}(\operatorname{examiner\_id\_factor}_{\operatorname{3011}}) + \beta_{26}(\operatorname{examiner\_id\_factor}_{\operatorname{3012}}) +\\ \beta_{27}(\operatorname{gender}_{\operatorname{Male}} \times \operatorname{examiner\_id\_factor}_{\operatorname{3001}}) + \beta_{28}(\operatorname{gender}_{\operatorname{Male}} \times \operatorname{examiner\_id\_factor}_{\operatorname{3002}}) +\\ \beta_{29}(\operatorname{gender}_{\operatorname{Male}} \times \operatorname{examiner\_id\_factor}_{\operatorname{3003}}) + \beta_{30}(\operatorname{gender}_{\operatorname{Male}} \times \operatorname{examiner\_id\_factor}_{\operatorname{3004}}) +\\ \beta_{31}(\operatorname{gender}_{\operatorname{Male}} \times \operatorname{examiner\_id\_factor}_{\operatorname{3005}}) + \beta_{32}(\operatorname{gender}_{\operatorname{Male}} \times \operatorname{examiner\_id\_factor}_{\operatorname{3006}}) +\\ \beta_{33}(\operatorname{gender}_{\operatorname{Male}} \times \operatorname{examiner\_id\_factor}_{\operatorname{3008}}) + \beta_{34}(\operatorname{gender}_{\operatorname{Male}} \times \operatorname{examiner\_id\_factor}_{\operatorname{3009}}) +\\ \beta_{35}(\operatorname{gender}_{\operatorname{Male}} \times \operatorname{examiner\_id\_factor}_{\operatorname{3010}}) + \beta_{36}(\operatorname{gender}_{\operatorname{Male}} \times \operatorname{examiner\_id\_factor}_{\operatorname{3011}}) +\\ \beta_{37}(\operatorname{gender}_{\operatorname{Male}} \times \operatorname{examiner\_id\_factor}_{\operatorname{3012}}))
+$$
+
 # Brief diagnostics
 
 ```{r}
@@ -181,49 +187,6 @@ outcome_table %>% group_by(Actual) %>% summarize(Predicted= Predicted,n = n/sum(
 
 # Consider R2 of no examiner
 1-health_model_lim$deviance/health_model_lim$null.deviance
-```
-
-# Further diagnostics
-
-```{r}
-library(tidyverse)
-library(broom)
-
-probabilities <- predict(health_model_examiner_intgender, type = "response")
-predicted.classes <- ifelse(probabilities > 0.5, "pos", "neg")
-head(predicted.classes)
-
-mydata <- model.frame(health_model_examiner_intgender) %>% select(age, "scale(systolic_bp)", "scale(diastolic_bp)","scale(bmi)","scale(wbc_count)","scale(plt_count)","scale(height)", "scale(hemoglobin)") 
-predictors <- colnames(mydata)
-
-mydata <- mydata %>%
-  mutate(logit = log(probabilities/(1-probabilities))) %>%
-  gather(key = "predictors", value = "predictor.value", -logit)
-
-ggplot(mydata, aes(logit, predictor.value))+
-  geom_point(size = 0.5, alpha = 0.5) +
-  geom_smooth(method = "loess") + 
-  theme_bw() + 
-  facet_wrap(~predictors, scales = "free_y")
-# I honestly can't tell if these could be considered roughly linear.
-
-plot(health_model_examiner_intgender, which = 4, id.n = 3)
-
-model.data <- augment(health_model_examiner_intgender) %>% 
-  mutate(index = 1:n()) 
-
-model.data %>% top_n(3, .cooksd)
-
-ggplot(model.data, aes(index, .std.resid)) + 
-  geom_point(aes(color = health_status2), alpha = .5) +
-  theme_bw()
-
-model.data %>% 
-  filter(abs(.std.resid) > 3)
-# Note: We seem to have 24 influential data points that could be skewing the data.
-
-car::vif(health_model_examiner_intgender)
-#Note: We don't seem to have a problematic amount of multicollinearity.
 ```
 
 
