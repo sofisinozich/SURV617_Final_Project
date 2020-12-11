@@ -1,5 +1,5 @@
 ---
-title: "R Code and Output"
+title: "Appendix A: Annotated R Code and Output"
 author: "Sofi Sinozich & Rachael Jackson"
 date: "12/8/2020"
 output: html_document
@@ -21,7 +21,7 @@ full_data$examiner_id_factor <- relevel(factor(full_data$examiner_id,levels=as.c
 
 Our full code, including initial data wrangling and brief exploratory code is available on GitHub [https://github.com/sofisinozich/SURV617_Final_Project](https://github.com/sofisinozich/SURV617_Final_Project) but we present the key models and diagnostics here.
 
-# Variable selection with glmnet (`\alpha = 1` for LASSO)
+# Variable selection with glmnet (`$\alpha = 1$` for LASSO)
 
 We tested three different variations, one unweighted, one weighted using the observation weights in `glmnet` and one with weights as a linear predictor. We use `lambda.1se` rather than `lambda.min` to achieve more shrinkage given our suspicion that some of the variables may not be important.
 
@@ -30,7 +30,7 @@ library(glmnet)
 library(glmnetUtils)
 
 health_lasso <- cv.glmnet(health_status2 ~
-                            race+ gender + age + region + time_of_day +
+                            race+ gender + scale(age) + region + time_of_day +
                             scale(systolic_bp) + scale(diastolic_bp) +
                             locomotion + paralysis + impairment + infection +
                             scale(bmi) + scale(weight) + scale(height)+ 
@@ -41,7 +41,7 @@ health_lasso <- cv.glmnet(health_status2 ~
 
 # Test with observation weights
 health_lasso_weighted <- cv.glmnet(health_status2 ~
-                                    race+ gender + age + region + time_of_day +
+                                    race+ gender + scale(age) + region + time_of_day +
                                     scale(systolic_bp) + scale(diastolic_bp) +
                                     locomotion + paralysis + impairment + infection +
                                     scale(bmi) + scale(weight) + scale(height)+ 
@@ -54,7 +54,7 @@ health_lasso_weighted <- cv.glmnet(health_status2 ~
 # Test with weights as a predictor instead
 health_lasso_weightaspredictor <- cv.glmnet(health_status2 ~
                                      scale(WTPFHX6) +
-                                     race+ gender + age + region + time_of_day +
+                                     race+ gender + scale(age) + region + time_of_day +
                                      scale(systolic_bp) + scale(diastolic_bp) +
                                      locomotion + paralysis + impairment + infection +
                                      scale(bmi) + scale(weight) + scale(height)+ 
@@ -72,7 +72,7 @@ coef(health_lasso_weightaspredictor,s="lambda.1se")
 
 Even though the results of the regularization seem to suggest that we keep it, we did additional checks to gather additional evidence for an examiner-specific effect. We also double-check the usefulness of weights as a linear predictor based on the LASSO output.
 
-We also adjusted two of our categorical variables to include only dummies for one of the categories based on the previous output, replacing `race` with `black` and `region` with `west`.
+We also adjusted two of our categorical variables to include only dummies for one of the categories based on the previous output, replacing `race` with `black` and `region` with `west`. We also use unscaled age for better interpretability.
 
 ```{r}
 # Base model - using the selected variables but NO examiner effect
@@ -136,23 +136,23 @@ health_model_examiner_intblack <- update(health_model_examiner,.~.+examiner_id_f
 health_model_examiner_intblackgender <- update(health_model_examiner,.~.+examiner_id_factor:gender:black)
 
 AIC(health_model_examiner,health_model_examiner_intgender,health_model_examiner_intblack,health_model_examiner_intblackgender)
-BIC(health_model_examiner,health_model_examiner_intgender,health_model_examiner_intblack,health_model_examiner_intblackgender)
 # Gender interaction seems to be making the most difference
-
 
 # Likelihood ratio tests
 (health_model_lim$deviance - health_model_examiner$deviance)>qchisq(.95,11)
+1-pchisq((health_model_lim$deviance - health_model_examiner$deviance),11)
 # This is greater, so we conclude that we should keep the examiner IDs
 
 (health_model_examiner$deviance - health_model_examiner_intgender$deviance)>qchisq(.95,11)
+1-pchisq((health_model_examiner$deviance - health_model_examiner_intgender$deviance),11)
 # This is greater, so we conclude that we should keep the gender interaction
 
 (health_model_examiner_intgender$deviance - health_model_examiner_intblackgender$deviance) > qchisq(.95,12)
+1-pchisq((health_model_examiner_intgender$deviance - health_model_examiner_intblackgender$deviance) ,12)
 # This is greater, but really not by much
 
 summary(health_model_examiner_intgender)
 ```
-
 
 # Brief diagnostics
 
@@ -182,3 +182,69 @@ outcome_table %>% group_by(Actual) %>% summarize(Predicted= Predicted,n = n/sum(
 # Consider R2 of no examiner
 1-health_model_lim$deviance/health_model_lim$null.deviance
 ```
+
+# Further diagnostics
+
+```{r}
+library(tidyverse)
+library(broom)
+
+probabilities <- predict(health_model_examiner_intgender, type = "response")
+predicted.classes <- ifelse(probabilities > 0.5, "pos", "neg")
+head(predicted.classes)
+
+mydata <- model.frame(health_model_examiner_intgender) %>% select(age, "scale(systolic_bp)", "scale(diastolic_bp)","scale(bmi)","scale(wbc_count)","scale(plt_count)","scale(height)", "scale(hemoglobin)") 
+predictors <- colnames(mydata)
+
+mydata <- mydata %>%
+  mutate(logit = log(probabilities/(1-probabilities))) %>%
+  gather(key = "predictors", value = "predictor.value", -logit)
+
+ggplot(mydata, aes(logit, predictor.value))+
+  geom_point(size = 0.5, alpha = 0.5) +
+  geom_smooth(method = "loess") + 
+  theme_bw() + 
+  facet_wrap(~predictors, scales = "free_y")
+# I honestly can't tell if these could be considered roughly linear.
+
+plot(health_model_examiner_intgender, which = 4, id.n = 3)
+
+model.data <- augment(health_model_examiner_intgender) %>% 
+  mutate(index = 1:n()) 
+
+model.data %>% top_n(3, .cooksd)
+
+ggplot(model.data, aes(index, .std.resid)) + 
+  geom_point(aes(color = health_status2), alpha = .5) +
+  theme_bw()
+
+model.data %>% 
+  filter(abs(.std.resid) > 3)
+# Note: We seem to have 24 influential data points that could be skewing the data.
+
+car::vif(health_model_examiner_intgender)
+#Note: We don't seem to have a problematic amount of multicollinearity.
+```
+
+
+# Final model table (*health_model_examiner_intgender*)
+
+```{r echo=FALSE}
+library(kableExtra)
+library(tidyverse)
+library(magrittr)
+tableout <- summary(health_model_examiner_intgender)$coef %>% as.data.frame %>% rownames_to_column("Variable") %>% select(-'z value') 
+names(tableout) <- c("Variable","Estimate","SE","sig")
+tableout %<>% 
+  mutate(sigstar = case_when(sig >= 0.1 ~ "",
+                         sig < 0.1 & sig >= 0.05 ~ ".",
+                         sig < 0.05 & sig >= 0.01 ~ "*",
+                         sig < 0.01 & sig >= 0.001 ~ "**",
+                         sig < 0.001 ~ "***"))
+
+tableout %>% knitr::kable(digits=3)
+
+# For the main body of the text
+tableout %>% knitr::kable(digits=3) %>% save_kable("body_table.html")
+```
+

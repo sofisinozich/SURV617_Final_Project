@@ -1,0 +1,24 @@
+// I used https://latex.codecogs.com/eqneditor/editor.php to generate the equations
+
+P(healthstatus2 = 1) =logit^{-1}( 
+\beta_0 + 
+\beta_1race_{black} +
+\beta_2race_{hisp} +
+\beta_3race_{other} +
+\beta_4age +
+\beta_5timeofday_{afternoon} +
+\beta_6timeofday_{evening} +
+\beta_7systolicbp +
+\beta_8diastolicbp +
+\beta_9locomotion +
+\beta_{10}paralysis +
+\beta_{11}impairment +
+\beta_{12}infection +
+\beta_{13}BMI +
+\beta_{14}weight +
+\beta_{15}height +
+\beta_{16}rbc +
+\beta_{17}wbc +
+\beta_{18}platelets +
+\beta_{19}hemoglobin+
+\beta_{20}gender_{male})
