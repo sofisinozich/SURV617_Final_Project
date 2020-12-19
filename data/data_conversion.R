@@ -8,12 +8,16 @@ library(SAScii)
 
 # This takes a very long time but it will finish
 # Warnings are just NA coercions, they are OK
+# 
+# exam_data<-read.SAScii("data/exam.dat","data/exam_edited.sas")
+# saveRDS(exam_data,"data/exam.rds")
 
-exam_data<-read.SAScii("data/exam.dat","data/exam_edited.sas")
-saveRDS(exam_data,"data/exam.rds")
+exam_data <- readRDS("data/exam.rds")
 
-lab_data <- read.SAScii("data/lab.dat","data/lab_edited.sas")
-saveRDS(lab_data,"data/lab.rds")
+# lab_data <- read.SAScii("data/lab.dat","data/lab_edited.sas")
+# saveRDS(lab_data,"data/lab.rds")
+
+lab_data <- readRDS("data/lab.rds")
 
 # Only includes those where exam and lab data are available
 full_data <- merge(exam_data,lab_data)
@@ -29,21 +33,25 @@ full_data <- full_data %>%
                           DMARETHN == 4 & DMAETHNR == 2 ~ "Hispanic",
                           DMARETHN == 4 & DMAETHNR != 2 ~ "Other"),
          white = ifelse(race == "White",1,0),
+         black = ifelse(race == "Black",1,0),
          gender = ifelse(HSSEX==1,"Male","Female"),
-         age = HSAGEIR, # note topcoded at 90, consider limiting to adults
+         age = ifelse(HSAGEU==2,HSAGEIR,NA_real_), # note topcoded at 90, consider limiting to adults
          region = case_when(DMPCREGN == 1 ~ "Northeast",
                             DMPCREGN == 2 ~ "Midwest",
                             DMPCREGN == 3 ~ "South",
                             DMPCREGN == 4 ~ "West"),
+         west = ifelse(region == "West",1,0),
          time_of_day = case_when(MXPSESSR == 1 ~ "Morning",
                                  MXPSESSR == 2 ~ "Afternoon",
                                  MXPSESSR == 3 ~ "Evening"),
          day_of_week = ifelse(is.na(MXPTIDW), HXPTIDW, MXPTIDW) %>% ifelse(. == 8, NA_real_,.),
          examiner_id = ifelse(PEPTECH < 88888, PEPTECH,NA_real_),
+         examiner_id_factor = relevel(factor(examiner_id,levels=as.character(c(3007,c(3001:3012)[-7]))),ref="3007"),
          health_status= ifelse(PEP13A <8, PEP13A, NA_real_),
          referral_level = ifelse(PEPLEVEL < 8, PEPLEVEL, NA_real_),
          referral_level2 = ifelse(referral_level == 3,0,1), # 1 = referred
          health_status2 = ifelse(health_status>1, 0,1), # 1 = status excellent
+         health_status2evg = ifelse(health_status>2,0,1), # 1 = status vgood+
          health_statusevg = case_when(health_status == 1 ~ 1,
                                       health_status == 2 ~ 0) # 1 = status excellent
   ) %>% 
@@ -82,6 +90,8 @@ full_data <- full_data %>%
          plt_count = ifelse(PLP < 88888,PLP,NA_real_),
          hemoglobin = ifelse(HGP < 88888,HGP,NA_real_)) %>% 
   # Limit sample to adults
-  filter(age >= 18)
+  filter(age >= 18) %>% 
+  # Limit sample to MEC-interviewees
+  filter(WTPFEX6 > 0)
 
 saveRDS(full_data,"data/full_data.rds")
