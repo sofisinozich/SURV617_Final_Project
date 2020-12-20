@@ -10,6 +10,9 @@ library(tidyverse)
 library(magrittr)
 library(kableExtra)
 library(scales)
+library(glmnet)
+library(glmnetUtils)
+library(selectiveInference)
 ```
 
 ```{r echo=FALSE}
@@ -99,4 +102,58 @@ table1 %>%
 ```
 
 
+
+# Modeling
+
+```{r}
+health_lasso_mat <- model.matrix(health_status2evg ~
+                 race+ gender + scale(age) + region + time_of_day +
+                 scale(systolic_bp) + scale(diastolic_bp) +
+                 locomotion + paralysis + impairment + infection +
+                 scale(bmi) + scale(weight) + scale(height)+ 
+                 scale(rbc_count) + scale(wbc_count) + scale(plt_count) + scale(hemoglobin) +
+                 hypertension + scale(waist_to_hip) + chest + heart +
+                 examiner_id_factor + examiner_id_factor:gender + examiner_id_factor:white + examiner_id_factor:white:gender,data=full_data)
+
+health_lasso_out <- model.frame(health_status2evg ~
+                 race+ gender + scale(age) + region + time_of_day +
+                 scale(systolic_bp) + scale(diastolic_bp) +
+                 locomotion + paralysis + impairment + infection +
+                 scale(bmi) + scale(weight) + scale(height)+ 
+                 scale(rbc_count) + scale(wbc_count) + scale(plt_count) + scale(hemoglobin) +
+                 hypertension + scale(waist_to_hip) + chest + heart +
+                 examiner_id_factor + examiner_id_factor:gender + examiner_id_factor:white + examiner_id_factor:white:gender,data=full_data)$health_status2evg
+
+health_lasso <- cv.glmnet(health_status2evg ~
+                            race+ gender + scale(age) + region + time_of_day +
+                            scale(systolic_bp) + scale(diastolic_bp) +
+                            locomotion + paralysis + impairment + infection +
+                            scale(bmi) + scale(weight) + scale(height)+ 
+                            scale(rbc_count) + scale(wbc_count) + scale(plt_count) + scale(hemoglobin) +
+                            hypertension + scale(waist_to_hip) + chest + heart +
+                            examiner_id_factor + examiner_id_factor:gender + examiner_id_factor:white + examiner_id_factor:white:gender,
+                          data=full_data,
+                          family= binomial(link = "logit"))
+
+
+health_lasso2 <- glmnet::cv.glmnet(x = health_lasso_mat[,-1],
+                 y=model.frame(health_status2evg ~
+                 race+ gender + scale(age) + region + time_of_day +
+                 scale(systolic_bp) + scale(diastolic_bp) +
+                 locomotion + paralysis + impairment + infection +
+                 scale(bmi) + scale(weight) + scale(height)+ 
+                 scale(rbc_count) + scale(wbc_count) + scale(plt_count) + scale(hemoglobin) +
+                 hypertension + scale(waist_to_hip) + chest + heart +
+                 examiner_id_factor + examiner_id_factor:gender + examiner_id_factor:white + examiner_id_factor:white:gender,data=full_data)$health_status2evg,
+                 family=binomial(link="logit"))
+
+coef(health_lasso,s="lambda.1se")
+coef(health_lasso2,s="lambda.1se")
+
+
+fixedLassoInf(y=health_lasso_out,
+              x=health_lasso_mat[,-1],
+              beta=coef(health_lasso2, s=health_lasso2$lambda.min/dim(health_lasso_mat)[1]),
+              lambda=health_lasso2$lambda.min,family="binomial")
+```
 
