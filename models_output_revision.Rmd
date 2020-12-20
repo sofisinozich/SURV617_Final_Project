@@ -2,13 +2,14 @@
 title: 'Revised code for potential submission'
 author: "Sofi Sinozich & Rachael Jackson"
 date: "12/8/2020"
-output:
-  word_document: default
-  html_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message=FALSE)
+library(tidyverse)
+library(magrittr)
+library(kableExtra)
+library(scales)
 ```
 
 ```{r echo=FALSE}
@@ -18,12 +19,7 @@ full_data <- readRDS("data/full_data.rds")
 # Descriptives
 
 ```{r}
-# Physicians x health status
-full_data %>% filter(!is.na(health_status2) & !is.na(examiner_id)) %>% group_by(examiner_id) %>% count(health_status2) %>% 
-  ggplot + geom_bar(aes(x = health_status2,y=n),stat="identity") + 
-  geom_label(aes(x=health_status2,y=n+10,label=n)) + facet_wrap(.~examiner_id)
-
-full_data %>% filter(!is.na(health_status2evg) & !is.na(examiner_id)) %>% group_by(examiner_id) %>% count(health_status2evg) %>% 
+examiner_chart<-full_data %>% filter(!is.na(health_status2evg) & !is.na(examiner_id)) %>% group_by(examiner_id) %>% count(health_status2evg) %>% 
   ggplot + geom_bar(aes(x = health_status2evg,y=n,fill=ifelse(health_status2evg==1,"Excellent/Very Good","Good/Fair/Poor")),stat="identity") + 
   geom_label(aes(x=health_status2evg,y=n+500,label=n,
                  vjust=case_when(examiner_id==3007 & health_status2evg==1 ~ 1.25,
@@ -44,8 +40,63 @@ full_data %>% filter(!is.na(health_status2evg) & !is.na(examiner_id)) %>% group_
   facet_wrap(.~examiner_id) +
   ggtitle("Patients' Physician-Rated Health Status by Examining Physician")
 
+# Health status overall
+full_data %>% filter(!is.na(health_status) & !is.na(examiner_id)) %>% count(health_status) %>% 
+  ggplot +
+  geom_bar(aes(x = health_status,y=n),stat="identity") +
+  theme_light() +
+  theme(legend.position="none")+
+  labs(x="Health Status",y="Patients Evaluated") +
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 7000)) +
+  scale_x_continuous(breaks=1:5,labels=c("Excellent","Very Good","Good","Fair","Poor")) +
+  geom_label(aes(x=health_status,y=n,label=n)) +
+  ggtitle("Patients' Physician-Rated Health Status")
 
 # Physicians x referral status
 
 ```
+
+```{r}
+# Descriptive tables
+
+# full_data %>% filter(!is.na(health_status2evg) & !is.na(examiner_id)) %>% 
+#   mutate(health_statusex = ifelse(health_status2evg==1,"Excellent/very good","Good/fair/poor")) %>% 
+#                        select(health_statusex,race,gender,age,region) %>% mutate_at(vars(-age),as.factor) %>% summary()
+
+# Make table section
+
+make_t1<-function(var) {
+  full_data %>% 
+  filter(!is.na(health_status2evg) & !is.na(examiner_id)) %>% 
+  group_by(examiner_id) %>% count(!!sym(var)) %>% mutate(n=n/sum(n)) %>%
+  group_by(!!sym(var)) %>% summarize(Mean = mean(n), Median = median(n), Max = max(n), Min = min(n)) %>% 
+  rename(var=!!sym(var)) %>% mutate(var = as.character(var))
+}
+
+table1<-bind_rows(
+    # Health status
+    full_data %>% 
+        filter(!is.na(health_status) & !is.na(examiner_id)) %>% 
+        group_by(examiner_id) %>% count(health_status) %>% mutate(n=n/sum(n)) %>%
+        group_by(health_status) %>% summarize(Mean = mean(n), Median = median(n), Max = max(n), Min = min(n)) %>% mutate(health_status = c("Excellent","Very Good","Good","Fair","Poor")) %>% rename(var=health_status),
+    make_t1("gender"),
+    make_t1("race"),
+    make_t1("region")
+) %>% mutate_at(vars(Mean:Min),~percent(.,accuracy=.1)) %>% 
+  bind_rows(
+    c(var="",Mean="",Median="",Max="",Min=""),
+full_data %>% 
+    filter(!is.na(health_status) & !is.na(examiner_id)) %>% 
+    group_by(examiner_id) %>% summarize(n=median(age)) %>% summarize(Mean = mean(n), Median = median(n), Max = max(n), Min = min(n))  %>%  mutate_all(~round(.,1)) %>%  bind_cols(var = "Median Age") %>% select(var,everything()) %>% transmute_all(as.character)
+  )
+
+table1 %>% 
+  kbl(format="latex",col.names = c("",names(table1)[-1]),caption="Summary Statistics Across Examiners")%>% 
+  pack_rows(index=c("Health Status"=5,
+                                       "Gender"=2,
+                                       "Race"=4,
+                                       "Region"=4)) 
+```
+
+
 
